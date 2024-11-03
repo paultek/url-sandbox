@@ -1,29 +1,62 @@
-FROM python:3.7
-ENV LANG C.UTF-8
-ENV LC_ALL C.UTF-8
-ENV PYTHONUNBUFFERED=1
-ENV DEBIAN_FRONTEND noninteractive
-RUN apt-get update && apt-get install -y curl unzip wget jq xvfb firefox-esr tor iptables-persistent iptables net-tools supervisor tcpdump libtesseract-dev libleptonica-dev tesseract-ocr
+# Use an official Python image as a base
+FROM python:3.7-slim
+
+# Set environment variables
+ENV LANG C.UTF-8 \
+    LC_ALL C.UTF-8 \
+    PYTHONUNBUFFERED=1 \
+    DEBIAN_FRONTEND=noninteractive
+
+# Update and install dependencies in a single RUN layer
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    unzip \
+    wget \
+    jq \
+    xvfb \
+    firefox-esr \
+    tor \
+    iptables-persistent \
+    iptables \
+    net-tools \
+    supervisor \
+    tcpdump \
+    libtesseract-dev \
+    libleptonica-dev \
+    tesseract-ocr \
+    gnupg \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Python dependencies
 COPY box-requirements.txt .
-RUN pip install -r box-requirements.txt --use-deprecated=legacy-resolver
-RUN GECKOVERSION=`curl -sL https://api.github.com/repos/mozilla/geckodriver/releases/latest | jq -r ".tag_name"` && \
-    wget https://github.com/mozilla/geckodriver/releases/download/$GECKOVERSION/geckodriver-$GECKOVERSION-linux64.tar.gz && \
-    tar -zxf geckodriver-$GECKOVERSION-linux64.tar.gz -C /usr/local/bin && \
-    chmod +x /usr/local/bin/geckodriver
-RUN CHROMEDRIVER=`curl -sS chromedriver.storage.googleapis.com/LATEST_RELEASE` && \
-    wget https://chromedriver.storage.googleapis.com/$CHROMEDRIVER/chromedriver_linux64.zip -O chromedriver_linux64.zip && \
-    unzip chromedriver_linux64.zip -d /usr/bin && \
-    chmod +x /usr/bin/chromedriver
-RUN CHROME=google-chrome.deb && \
-    wget "https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb" -O $CHROME && \
-    dpkg -i $CHROME || true && \
-    apt-get install -y -f
-RUN PHANTOMJS=`curl -sL https://bitbucket.org/ariya/phantomjs/downloads/ | grep -E -o 'phantomjs-[0-9]{1,2}.[0-9]{1,2}.[0-9]{1,2}-linux-x86_64.tar.bz2'  | head -n 1` && \
-    wget https://bitbucket.org/ariya/phantomjs/downloads/$PHANTOMJS -O $PHANTOMJS && \
-    tar -jxf $PHANTOMJS && \
-    cp $PHANTOMJS /usr/local/bin/phantomjs
+RUN pip install --no-cache-dir -r box-requirements.txt --use-deprecated=legacy-resolver
+
+# Add Google Chrome's official GPG key and repo
+RUN wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add - \
+    && echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" > /etc/apt/sources.list.d/google.list
+
+# Install Google Chrome and ChromeDriver
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    google-chrome-stable \
+    && wget -q --continue -P /usr/local/bin "https://storage.googleapis.com/chrome-for-testing-public/130.0.6723.91/linux64/chromedriver-linux64.zip" \
+    && unzip /usr/local/bin/chromedriver-linux64.zip -d /usr/local/bin/ \
+    && rm /usr/local/bin/chromedriver-linux64.zip
+
+# Install PhantomJS (using Bitbucket latest version link)
+#RUN wget -q https://bitbucket.org/ariya/phantomjs/downloads/phantomjs-2.1.1-linux-x86_64.tar.bz2 -O /tmp/phantomjs-2.1.1-linux-x86_64.tar.bz2 \
+#    && tar -xvzf /tmp/phantomjs-2.1.1-linux-x86_64.tar.bz2 -C /usr/local/bin --strip-components=2 phantomjs-*/bin/phantomjs \
+#    && rm /tmp/phantomjs-2.1.1-linux-x86_64.tar.bz2
+COPY ./phantomjs /usr/local/bin
+
+# Set up Supervisor
 COPY ./box/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
-RUN mkdir /output
-ADD ./box ./box
-WORKDIR box
+
+# Copy application files
+COPY ./box /box
+WORKDIR /box
+
+# Create output directory
+RUN mkdir -p /output
+
+# Set the entry point
 ENTRYPOINT ["python", "run.py"]
