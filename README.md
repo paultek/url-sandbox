@@ -5,7 +5,14 @@
 URL Sandbox automate the daily task of analyzing URL or Domains internally without external resources' interaction. It contains a sandbox module that executes the target in an isolated environment (Customizable). The output from that environment is parsed and structured into useful categories. Some of those categories are visualized for better user experience. This project is scalable and can be integrated into your SOC.
 
 ## Install
-```git clone https://github.com/qeeqbox/url-sandbox.git && cd url-sandbox && chmod +x run.sh && ./run.sh auto_configure```
+```bash
+git clone https://github.com/qeeqbox/url-sandbox.git && cd url-sandbox
+```
+Download https://bitbucket.org/ariya/phantomjs/downloads/phantomjs-2.1.1-linux-x86_64.tar.bz2 and extract phantomjs to url-sandbox directory
+
+```bash
+chmod +x run.sh && ./run.sh auto_configure
+```
 
 ## Interface
 <img src="https://raw.githubusercontent.com/qeeqbox/url-sandbox/master/readme/intro.gif" style="max-width:768px"/>
