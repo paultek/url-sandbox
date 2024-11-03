@@ -314,10 +314,9 @@ def chrome_driver(parsed, analyzer_db):
     chrome_options.add_argument('--user-agent={}'.format(parsed['useragent_mapped']))
     if parsed['use_proxy']:
         chrome_options.add_argument('--proxy-server=%s' % parsed['proxy'])
-    chrome_options.binary_location = "/usr/bin/google-chrome"
     d = DesiredCapabilities.CHROME
     d["goog:loggingPrefs"] = {"performance": "ALL"}
-    chromebrowser = webdriver.Chrome(chrome_options=chrome_options, desired_capabilities=d)
+    chromebrowser = webdriver.Chrome(options=chrome_options)
     if parsed["no_redirect"]:
         chromebrowser.implicitly_wait(0.1)
         try:
@@ -331,14 +330,14 @@ def chrome_driver(parsed, analyzer_db):
             chromebrowser.get(parsed["buffer"])
         except BaseException:
             pass
-    performance_logs = chromebrowser.get_log('performance')
+    #performance_logs = chromebrowser.get_log('performance')
     get_cert(parsed, extracted_table)
     get_all_links(chromebrowser.page_source, extracted_table)
     get_all_scripts(chromebrowser.page_source, extracted_table)
     if parsed['take_full_screenshot']:
         take_full_screen_shot(chromebrowser, screenshot_table, words_table)
     take_normal_screen_shot(chromebrowser, screenshot_table, words_table)
-    parse_ouput(performance_logs, analyzer_table)
+    #parse_ouput(performance_logs, analyzer_table)
     make_network(analyzer_table, network_table)
     chromebrowser.quit()
     DISPLAY.stop()
