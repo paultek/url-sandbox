@@ -3,6 +3,7 @@ redis
 pymongo==3.12.1
 termcolor
 psutil
+kombu
 celery
 python-magic
 docker
